@@ -36,7 +36,7 @@ pipeline {
 
         stage('Extract Artifact') {
             steps {
-                sh 'tar -xzf react-app-${CI_BUILD_NUMBER}.tar.gz'
+                sh "tar -xzf react-app-${params.CI_BUILD_NUMBER}.tar.gz"
             }
         }
 
