@@ -1,0 +1,72 @@
+
+pipeline {
+    agent any
+
+    parameters {
+        string(
+            name: 'CI_BUILD_NUMBER',
+            defaultValue: '2',
+            description: 'Main branch CI build number to deploy'
+        )
+
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['DEV', 'TEST', 'ACC', 'PROD'],
+            description: 'Deployment environment'
+        )
+    }
+
+    stages {
+        stage('Retrieve CI Artifact') {
+            steps {
+                script {
+                    if (!(params.CI_BUILD_NUMBER ==~ /^\d+$/)) {
+                        error 'CI_BUILD_NUMBER must be a number.'
+                    }
+                }
+
+                copyArtifacts(
+                    projectName: 'react-task-tracker/main',
+                    selector: specific("${params.CI_BUILD_NUMBER}"),
+                    filter: "react-app-${params.CI_BUILD_NUMBER}.tar.gz",
+                    fingerprintArtifacts: true
+                )
+            }
+        }
+
+        stage('Extract Artifact') {
+            steps {
+                sh 'tar -xzf react-app-${CI_BUILD_NUMBER}.tar.gz'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    def environmentName = params.ENVIRONMENT.toLowerCase()
+
+                    def deploymentPorts = [
+                        DEV: '8081',
+                        TEST: '8082',
+                        ACC: '8083',
+                        PROD: '8084'
+                    ]
+
+                    def port = deploymentPorts[params.ENVIRONMENT]
+                    def imageName = "react-task-tracker:${environmentName}-ci-${params.CI_BUILD_NUMBER}"
+                    def containerName = "react-task-tracker-${environmentName}"
+
+                    sh """
+                        docker build -t ${imageName} .
+                        docker rm -f ${containerName} || true
+                        docker run -d --name ${containerName} -p ${port}:80 ${imageName}
+                    """
+
+                    echo "CI Build Number: ${params.CI_BUILD_NUMBER}"
+                    echo "Environment: ${params.ENVIRONMENT}"
+                    echo "Application URL: http://localhost:${port}"
+                }
+            }
+        }
+    }
+}
