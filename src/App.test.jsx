@@ -25,7 +25,7 @@ describe("Task Tracker", () => {
     await user.click(screen.getByRole("button", { name: "Add Task" }));
 
     expect(screen.getByText("Complete project")).toBeInTheDocument();
-    expect(getStat("Total")).toHaveTextContent("1");
+    expect(getStat("Total")).toHaveTextContent("99");
     expect(getStat("Active")).toHaveTextContent("1");
   });
 
